@@ -22,18 +22,26 @@
       text-align: center;
     }
 
-    label, select, input, button {
-      display: block;
-      width: 100%;
-      margin-bottom: 12px;
-      font-size: 18px;
+    .form-group {
+      margin-bottom: 16px;
     }
 
-    input, select {
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 16px;
+      color: #555;
+    }
+
+    .form-group input,
+    .form-group select {
+      display: block;
+      width: 100%;
       padding: 10px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
       font-size: 18px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
     }
 
     button {
@@ -45,12 +53,14 @@
       cursor: pointer;
       border-radius: 6px;
       font-size: 18px;
+      width: 100%;
+      margin-top: 12px;
     }
 
     .output {
-      margin-top: 20px;
+      margin-top: 24px;
       font-size: 18px;
-      padding: 12px;
+      padding: 16px;
       background-color: #fff;
       border: 2px dashed #ff69b4;
       border-radius: 8px;
@@ -74,17 +84,23 @@
 <body>
   <h2>ふぁみーゆ／あんじゅえーる 延長計算アプリ</h2>
 
-  <label>顧客種別</label>
-  <select id="customer">
-    <option value="watch">観戦パック</option>
-    <option value="normal">通常セット</option>
-  </select>
+  <div class="form-group">
+    <label for="customer">顧客種別</label>
+    <select id="customer">
+      <option value="watch">観戦パック</option>
+      <option value="normal">通常セット</option>
+    </select>
+  </div>
 
-  <label>入場時間（例: 19:00 または 25:30）</label>
-  <input type="text" id="entryTime" value="19:00">
+  <div class="form-group">
+    <label for="entryTime">入場時間（例: 19:00 または 25:30）</label>
+    <input type="text" id="entryTime" value="19:00">
+  </div>
 
-  <label>退店希望時間</label>
-  <input type="text" id="exitTime">
+  <div class="form-group">
+    <label for="exitTime">退店希望時間</label>
+    <input type="text" id="exitTime">
+  </div>
 
   <button onclick="calculate()">算出する</button>
 
@@ -158,3 +174,13 @@
           <span>⏱️ 延長分数：${extra}分</span>
           <span>🕑 現在の延長終了時刻：${minutesToTime(nowEnd)}</span>
           <span>➕ 延長を1追加した場合：${minutesToTime(nextEnd)}</span>
+        `;
+      }
+
+      result.innerHTML = output;
+    }
+
+    window.onload = setDefaultExitTime;
+  </script>
+</body>
+</html>
