@@ -3,15 +3,64 @@
 <head>
   <meta charset="UTF-8">
   <title>ふぁみーゆ/あんじゅえーる 延長計算アプリ</title>
-  <style>
-    body { font-family: 'Arial', sans-serif; padding: 20px; background-color: #f0f8ff; }
-    select, input, button { margin: 10px 0; padding: 8px; width: 100%; max-width: 300px; font-size: 16px; }
-    button { background-color: #ff69b4; color: white; border: none; cursor: pointer; }
-    .output { margin-top: 20px; font-weight: bold; font-size: 18px; color: #333; }
-    .output span { display: block; margin: 5px 0; }
-    .error { color: red; }
-    .green { color: green; }
-  </style>
+ <style>
+  @import url('https://fonts.googleapis.com/css2?family=Sawarabi+Mincho&display=swap');
+
+  body {
+    font-family: 'Sawarabi Mincho', sans-serif;
+    background-color: #fff0f5;
+    padding: 20px;
+    max-width: 480px;
+    margin: auto;
+  }
+
+  h2 {
+    color: #d63384;
+    text-align: center;
+  }
+
+  label, select, input, button {
+    display: block;
+    width: 100%;
+    margin-bottom: 12px;
+    font-size: 18px;
+  }
+
+  input, select {
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+  }
+
+  button {
+    background-color: #ff69b4;
+    color: white;
+    border: none;
+    padding: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 6px;
+  }
+
+  .output {
+    margin-top: 20px;
+    font-size: 18px;
+    padding: 12px;
+    background-color: #fff;
+    border: 2px dashed #ff69b4;
+    border-radius: 8px;
+    color: #333;
+  }
+
+  .error {
+    color: red;
+  }
+
+  .green {
+    color: green;
+  }
+</style>
+
 </head>
 <body>
   <h2>ふぁみーゆ/あんじゅえーる 延長計算アプリ</h2>
