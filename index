@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>ふぁみーゆ/あんじゅえーる 延長計算アプリ</title>
+  <style>
+    body { font-family: 'Arial', sans-serif; padding: 20px; background-color: #f0f8ff; }
+    select, input, button { margin: 10px 0; padding: 8px; width: 100%; max-width: 300px; font-size: 16px; }
+    button { background-color: #ff69b4; color: white; border: none; cursor: pointer; }
+    .output { margin-top: 20px; font-weight: bold; font-size: 18px; color: #333; }
+    .output span { display: block; margin: 5px 0; }
+    .error { color: red; }
+    .green { color: green; }
+  </style>
+</head>
+<body>
+  <h2>ふぁみーゆ/あんじゅえーる 延長計算アプリ</h2>
+
+  <label>顧客種別</label>
+  <select id="customer">
+    <option value="watch">観戦パック</option>
+    <option value="normal">通常セット</option>
+  </select>
+
+  <label>入場時間（例: 19:00 または 25:30）</label>
+  <input type="text" id="entryTime" value="19:00">
+
+  <label>退店希望時間</label>
+  <input type="text" id="exitTime">
+
+  <button onclick="calculate()">算出する</button>
+
+  <div class="output" id="result"></div>
+
+  <script>
+    // 現在時刻を退店希望時刻にセットする
+    function setDefaultExitTime() {
+      const now = new Date();
+      const hours = now.getHours().toString().padStart(2, '0');
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      document.getElementById('exitTime').value = `${hours}:${minutes}`;
+    }
+
+    const customerOptions = {
+      watch: { setTime: 120, drinkTime: '120分' },
+      normal: { setTime: 40, drinkTime: '40分' }
+    };
+
+    function timeToMinutes(str) {
+      const [h, m] = str.split(":").map(Number);
+      return h * 60 + m;
+    }
+
+    function minutesToTime(min) {
+      const h = Math.floor(min / 60) % 24;
+      const m = min % 60;
+      return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+    }
+
+    function formatTimeDuration(min) {
+      const h = Math.floor(min / 60);
+      const m = min % 60;
+      return `${h}時間${m}分`;
+    }
+
+    function calculate() {
+      const customer = document.getElementById('customer').value;
+      const entry = timeToMinutes(document.getElementById('entryTime').value);
+      const exit = timeToMinutes(document.getElementById('exitTime').value);
+      const result = document.getElementById('result');
+      result.innerHTML = "";
+
+      if (!customer || entry === null || exit === null) {
+        result.innerHTML = "<span class='error'>入力をすべて正しく指定してください。</span>";
+        return;
+      }
+      if (exit <= entry) {
+        result.innerHTML = "<span class='error'>退店希望時間は入場時間より後にしてください。</span>";
+        return;
+      }
+
+      const setTime = customerOptions[customer].setTime;
+      const unit = 10;
+      const totalStay = exit - entry;
+      const extra = Math.max(0, totalStay - setTime);
+      const count = (extra <= 0) ? 0 : Math.ceil(extra / unit);
+
+      const nowEnd = entry + setTime + count * unit;
+      const nextEnd = nowEnd + unit;
+
+      let output = `
+        ✅ 現在までの滞在時間：${formatTimeDuration(totalStay)}<br>
+        🍹 飲み放題の時間：${customerOptions[customer].drinkTime}<br><br>
+      `;
+
+      if (count === 0) {
+        output += `<span class="green">🟢 セット内で完結しています。延長は不要です。</span>`;
+      } else {
+        output += `
+          🔁 現在までの延長回数：${count}回<br>
+          ⏱️ 延長分数：${extra}分<br>
+          🕑 現在の延長終了時刻：${minutesToTime(nowEnd)}<br>
+          ➕ 延長を1追加した場合：${minutesToTime(nextEnd)}<br>
+        `;
+      }
+
+      result.innerHTML = output;
+    }
+
+    // ページロード時に退店希望時間をセット
+    window.onload = setDefaultExitTime;
+  </script>
+</body>
+</html>
