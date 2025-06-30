@@ -2,68 +2,77 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>ふぁみーゆ/あんじゅえーる 延長計算アプリ</title>
- <style>
-  @import url('https://fonts.googleapis.com/css2?family=Sawarabi+Mincho&display=swap');
+  <title>ふぁみーゆ／あんじゅえーる 延長計算アプリ</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  body {
-    font-family: 'Sawarabi Mincho', sans-serif;
-    background-color: #fff0f5;
-    padding: 20px;
-    max-width: 480px;
-    margin: auto;
-  }
+  <!-- 可愛い日本語フォント -->
+  <link href="https://fonts.googleapis.com/css2?family=Sawarabi+Mincho&display=swap" rel="stylesheet">
 
-  h2 {
-    color: #d63384;
-    text-align: center;
-  }
+  <style>
+    body {
+      font-family: 'Sawarabi Mincho', sans-serif;
+      background-color: #fff0f5;
+      padding: 20px;
+      max-width: 480px;
+      margin: auto;
+    }
 
-  label, select, input, button {
-    display: block;
-    width: 100%;
-    margin-bottom: 12px;
-    font-size: 18px;
-  }
+    h2 {
+      color: #d63384;
+      text-align: center;
+    }
 
-  input, select {
-    padding: 10px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-  }
+    label, select, input, button {
+      display: block;
+      width: 100%;
+      margin-bottom: 12px;
+      font-size: 18px;
+    }
 
-  button {
-    background-color: #ff69b4;
-    color: white;
-    border: none;
-    padding: 12px;
-    font-weight: bold;
-    cursor: pointer;
-    border-radius: 6px;
-  }
+    input, select {
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 18px;
+    }
 
-  .output {
-    margin-top: 20px;
-    font-size: 18px;
-    padding: 12px;
-    background-color: #fff;
-    border: 2px dashed #ff69b4;
-    border-radius: 8px;
-    color: #333;
-  }
+    button {
+      background-color: #ff69b4;
+      color: white;
+      border: none;
+      padding: 12px;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 6px;
+      font-size: 18px;
+    }
 
-  .error {
-    color: red;
-  }
+    .output {
+      margin-top: 20px;
+      font-size: 18px;
+      padding: 12px;
+      background-color: #fff;
+      border: 2px dashed #ff69b4;
+      border-radius: 8px;
+      color: #333;
+    }
 
-  .green {
-    color: green;
-  }
-</style>
+    .output span {
+      display: block;
+      margin: 6px 0;
+    }
 
+    .error {
+      color: red;
+    }
+
+    .green {
+      color: green;
+    }
+  </style>
 </head>
 <body>
-  <h2>ふぁみーゆ/あんじゅえーる 延長計算アプリ</h2>
+  <h2>ふぁみーゆ／あんじゅえーる 延長計算アプリ</h2>
 
   <label>顧客種別</label>
   <select id="customer">
@@ -82,7 +91,6 @@
   <div class="output" id="result"></div>
 
   <script>
-    // 現在時刻を退店希望時刻にセットする
     function setDefaultExitTime() {
       const now = new Date();
       const hours = now.getHours().toString().padStart(2, '0');
@@ -119,12 +127,12 @@
       const result = document.getElementById('result');
       result.innerHTML = "";
 
-      if (!customer || entry === null || exit === null) {
-        result.innerHTML = "<span class='error'>入力をすべて正しく指定してください。</span>";
+      if (!customer || entry === null || exit === null || isNaN(entry) || isNaN(exit)) {
+        result.innerHTML = "<span class='error'>⚠️ 入力をすべて正しく指定してください。</span>";
         return;
       }
       if (exit <= entry) {
-        result.innerHTML = "<span class='error'>退店希望時間は入場時間より後にしてください。</span>";
+        result.innerHTML = "<span class='error'>⚠️ 退店希望時間は入場時間より後にしてください。</span>";
         return;
       }
 
@@ -138,26 +146,15 @@
       const nextEnd = nowEnd + unit;
 
       let output = `
-        ✅ 現在までの滞在時間：${formatTimeDuration(totalStay)}<br>
-        🍹 飲み放題の時間：${customerOptions[customer].drinkTime}<br><br>
+        <span>✅ 現在までの滞在時間：${formatTimeDuration(totalStay)}</span>
+        <span>🍹 飲み放題の時間：${customerOptions[customer].drinkTime}</span>
       `;
 
       if (count === 0) {
         output += `<span class="green">🟢 セット内で完結しています。延長は不要です。</span>`;
       } else {
         output += `
-          🔁 現在までの延長回数：${count}回<br>
-          ⏱️ 延長分数：${extra}分<br>
-          🕑 現在の延長終了時刻：${minutesToTime(nowEnd)}<br>
-          ➕ 延長を1追加した場合：${minutesToTime(nextEnd)}<br>
-        `;
-      }
-
-      result.innerHTML = output;
-    }
-
-    // ページロード時に退店希望時間をセット
-    window.onload = setDefaultExitTime;
-  </script>
-</body>
-</html>
+          <span>🔁 現在までの延長回数：${count}回</span>
+          <span>⏱️ 延長分数：${extra}分</span>
+          <span>🕑 現在の延長終了時刻：${minutesToTime(nowEnd)}</span>
+          <span>➕ 延長を1追加した場合：${minutesToTime(nextEnd)}</span>
