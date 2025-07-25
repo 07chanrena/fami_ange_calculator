@@ -149,12 +149,13 @@
       return `${h}時間${m}分`;
     }
 
+    // 時刻調整関数（自動変換機能）
     function adjustTime(time) {
       const isAutoConvert = document.getElementById('autoConvert').checked;
       if (!isAutoConvert) return time;
 
       let [h, m] = time.split(":").map(Number);
-      // 昼間は14:00、深夜は26:00に変換
+      // 6:00〜18:00の間
       if (h < 6) {
         h += 24;  // 深夜の場合、24時間形式に変換
       } else if (h < 18) {
@@ -163,6 +164,7 @@
       return `${h}:${m}`;
     }
 
+    // 計算処理
     function calculate() {
       const customer = document.getElementById('customer').value;
       const entryTime = adjustTime(document.getElementById('entryTime').value);
@@ -195,6 +197,7 @@
         <span>🍹 飲み放題の時間：${customerOptions[customer].drinkTime}</span>
       `;
 
+      // 再来店のチェック
       if (customer === 'repeat') {
         output += `<span class="green">🟢 再来店のためセット料金対象外です。</span>`;
       } else if (count === 0) {
