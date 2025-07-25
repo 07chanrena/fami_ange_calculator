@@ -79,28 +79,17 @@
     .green {
       color: green;
     }
-
-    .auto-convert {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-    }
   </style>
 </head>
 <body>
   <h2>ふぁみーゆ／あんじゅえーる 延長計算アプリ</h2>
-
-  <label class="auto-convert">
-    <input type="checkbox" id="autoConvert" checked>
-    自動変換を有効にする
-  </label>
 
   <div class="form-group">
     <label for="customer">顧客種別</label>
     <select id="customer">
       <option value="watch">観戦パック</option>
       <option value="normal">通常セット</option>
-      <option value="repeat">同日複数回（再来店）</option>
+      <option value="multiple">同日複数回来店</option>
     </select>
   </div>
 
@@ -129,7 +118,7 @@
     const customerOptions = {
       watch: { setTime: 120, drinkTime: '120分' },
       normal: { setTime: 40, drinkTime: '40分' },
-      repeat: { setTime: 0, drinkTime: '0分' }
+      multiple: { setTime: 0, drinkTime: '0分' }
     };
 
     function timeToMinutes(str) {
@@ -149,37 +138,14 @@
       return `${h}時間${m}分`;
     }
 
-    // 時刻調整関数（自動変換機能）
-    function adjustTime(time) {
-      const isAutoConvert = document.getElementById('autoConvert').checked;
-      if (!isAutoConvert) return time;
-
-      let [h, m] = time.split(":").map(Number);
-      // 6:00〜18:00の間
-      if (h < 6) {
-        h += 24;  // 深夜の場合、24時間形式に変換
-      } else if (h < 18) {
-        h += 12;  // 昼間の場合
-      }
-      const adjustedTime = `${h}:${m}`;
-      // 入力欄も変換後の時間を表示
-      if (time !== adjustedTime) {
-        document.getElementById('entryTime').value = adjustedTime;
-      }
-      return adjustedTime;
-    }
-
-    // 計算処理
     function calculate() {
       const customer = document.getElementById('customer').value;
-      const entryTime = adjustTime(document.getElementById('entryTime').value);
-      const exitTime = adjustTime(document.getElementById('exitTime').value);
-      const entry = timeToMinutes(entryTime);
-      const exit = timeToMinutes(exitTime);
+      const entry = timeToMinutes(document.getElementById('entryTime').value);
+      const exit = timeToMinutes(document.getElementById('exitTime').value);
       const result = document.getElementById('result');
       result.innerHTML = "";
 
-      if (!customer || isNaN(entry) || isNaN(exit)) {
+      if (!customer || entry === null || exit === null || isNaN(entry) || isNaN(exit)) {
         result.innerHTML = "<span class='error'>⚠️ 入力をすべて正しく指定してください。</span>";
         return;
       }
@@ -191,8 +157,15 @@
       const setTime = customerOptions[customer].setTime;
       const unit = 10;
       const totalStay = exit - entry;
-      const extra = Math.max(0, totalStay - setTime);
-      const count = (extra <= 0) ? 0 : Math.ceil(extra / unit);
+
+      let extra = 0;
+      let count = 0;
+
+      // 同日複数回来店の場合、セット料金を考慮せず、延長料金のみ計算
+      if (customer !== 'multiple') {
+        extra = Math.max(0, totalStay - setTime);
+        count = (extra <= 0) ? 0 : Math.ceil(extra / unit);
+      }
 
       const nowEnd = entry + setTime + count * unit;
       const nextEnd = nowEnd + unit;
@@ -202,9 +175,8 @@
         <span>🍹 飲み放題の時間：${customerOptions[customer].drinkTime}</span>
       `;
 
-      // 再来店のチェック
-      if (customer === 'repeat') {
-        output += `<span class="green">🟢 再来店のためセット料金対象外です。</span>`;
+      if (customer === 'multiple') {
+        output += `<span class="green">🟢 同日複数回目の来店のため、セット料金は適用されません。</span>`;
       } else if (count === 0) {
         output += `<span class="green">🟢 セット内で完結しています。延長は不要です。</span>`;
       } else {
