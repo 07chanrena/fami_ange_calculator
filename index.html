@@ -161,7 +161,12 @@
       } else if (h < 18) {
         h += 12;  // 昼間の場合
       }
-      return `${h}:${m}`;
+      const adjustedTime = `${h}:${m}`;
+      // 入力欄も変換後の時間を表示
+      if (time !== adjustedTime) {
+        document.getElementById('entryTime').value = adjustedTime;
+      }
+      return adjustedTime;
     }
 
     // 計算処理
@@ -218,3 +223,4 @@
   </script>
 </body>
 </html>
+
