@@ -89,6 +89,7 @@
     <select id="customer">
       <option value="watch">観戦パック</option>
       <option value="normal">通常セット</option>
+      <option value="multiple">同日複数回来店</option>
     </select>
   </div>
 
@@ -116,7 +117,8 @@
 
     const customerOptions = {
       watch: { setTime: 120, drinkTime: '120分' },
-      normal: { setTime: 40, drinkTime: '40分' }
+      normal: { setTime: 40, drinkTime: '40分' },
+      multiple: { setTime: 0, drinkTime: '0分' }
     };
 
     function timeToMinutes(str) {
@@ -155,8 +157,15 @@
       const setTime = customerOptions[customer].setTime;
       const unit = 10;
       const totalStay = exit - entry;
-      const extra = Math.max(0, totalStay - setTime);
-      const count = (extra <= 0) ? 0 : Math.ceil(extra / unit);
+
+      let extra = 0;
+      let count = 0;
+
+      // 同日複数回来店の場合、セット料金を考慮せず、延長料金のみ計算
+      if (customer !== 'multiple') {
+        extra = Math.max(0, totalStay - setTime);
+        count = (extra <= 0) ? 0 : Math.ceil(extra / unit);
+      }
 
       const nowEnd = entry + setTime + count * unit;
       const nextEnd = nowEnd + unit;
@@ -166,7 +175,9 @@
         <span>🍹 飲み放題の時間：${customerOptions[customer].drinkTime}</span>
       `;
 
-      if (count === 0) {
+      if (customer === 'multiple') {
+        output += `<span class="green">🟢 同日複数回目の来店のため、セット料金は適用されません。</span>`;
+      } else if (count === 0) {
         output += `<span class="green">🟢 セット内で完結しています。延長は不要です。</span>`;
       } else {
         output += `
