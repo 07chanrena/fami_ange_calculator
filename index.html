@@ -89,7 +89,7 @@
     <select id="customer">
       <option value="watch">観戦パック</option>
       <option value="normal">通常セット</option>
-      <option value="multiple">同日複数回来店</option>
+      <option value="multiple">同日再来店</option>
     </select>
   </div>
 
@@ -176,7 +176,7 @@
       `;
 
       if (customer === 'multiple') {
-        output += `<span class="green">🟢 同日複数回目の来店のため、セット料金は適用されません。</span>`;
+        output += `<span class="green">🟢 同日再来店のため、セット料金は適用されません。</span>`;
       } else if (count === 0) {
         output += `<span class="green">🟢 セット内で完結しています。延長は不要です。</span>`;
       } else {
