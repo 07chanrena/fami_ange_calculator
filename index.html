@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>ふぁみーゆ／あんじゅえーる 延長計算アプリ</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  
+
   <!-- 可愛い日本語フォント -->
   <link href="https://fonts.googleapis.com/css2?family=Sawarabi+Mincho&display=swap" rel="stylesheet">
 
@@ -67,36 +67,40 @@
       color: #333;
     }
 
+    .output span {
+      display: block;
+      margin: 6px 0;
+    }
+
     .error {
       color: red;
     }
 
-    /* 自動変換チェックボックス位置 */
-    #autoConvertLabel {
+    .green {
+      color: green;
+    }
+
+    .auto-convert {
       position: absolute;
-      top: 10px;
+      top: 20px;
       right: 20px;
-      font-size: 16px;
-      color: #333;
     }
   </style>
 </head>
 <body>
   <h2>ふぁみーゆ／あんじゅえーる 延長計算アプリ</h2>
 
-  <!-- 自動変換オプション -->
-  <div id="autoConvertLabel">
-    <label for="autoConvert">
-      時刻の自動変換: 
-      <input type="checkbox" id="autoConvert" checked>
-    </label>
-  </div>
+  <label class="auto-convert">
+    <input type="checkbox" id="autoConvert" checked>
+    自動変換を有効にする
+  </label>
 
   <div class="form-group">
     <label for="customer">顧客種別</label>
     <select id="customer">
       <option value="watch">観戦パック</option>
       <option value="normal">通常セット</option>
+      <option value="repeat">同日複数回（再来店）</option>
     </select>
   </div>
 
@@ -115,26 +119,19 @@
   <div class="output" id="result"></div>
 
   <script>
-    // 時間変換を実行時間帯に基づいて自動で行う
-    function convertTimeBasedOnCurrentTime(timeStr) {
+    function setDefaultExitTime() {
       const now = new Date();
-      const currentHour = now.getHours();  // 現在の時間（0-23）
-
-      let [hour, minute] = timeStr.split(":").map(Number);
-
-      if (document.getElementById("autoConvert").checked) {
-        // 現在の時間帯に基づき変換
-        if (currentHour >= 6 && currentHour < 18) { // 昼間（午前6時〜午後6時）
-          if (hour === 2) hour = 14;  // 2時→14時に変換
-        } else { // 深夜（午後6時〜翌午前6時）
-          if (hour === 2) hour = 26;  // 2時→26時に変換
-        }
-      }
-
-      return { hour, minute };
+      const hours = now.getHours().toString().padStart(2, '0');
+      const minutes = now.getMinutes().toString().padStart(2, '0');
+      document.getElementById('exitTime').value = `${hours}:${minutes}`;
     }
 
-    // 時間計算のロジック
+    const customerOptions = {
+      watch: { setTime: 120, drinkTime: '120分' },
+      normal: { setTime: 40, drinkTime: '40分' },
+      repeat: { setTime: 0, drinkTime: '0分' }
+    };
+
     function timeToMinutes(str) {
       const [h, m] = str.split(":").map(Number);
       return h * 60 + m;
@@ -152,47 +149,55 @@
       return `${h}時間${m}分`;
     }
 
+    function adjustTime(time) {
+      const isAutoConvert = document.getElementById('autoConvert').checked;
+      if (!isAutoConvert) return time;
+
+      let [h, m] = time.split(":").map(Number);
+      // 昼間は14:00、深夜は26:00に変換
+      if (h < 6) {
+        h += 24;  // 深夜の場合、24時間形式に変換
+      } else if (h < 18) {
+        h += 12;  // 昼間の場合
+      }
+      return `${h}:${m}`;
+    }
+
     function calculate() {
       const customer = document.getElementById('customer').value;
-      let entry = document.getElementById('entryTime').value;
-      let exit = document.getElementById('exitTime').value;
-
-      // 入場時間と退店希望時間の変換
-      const entryTime = convertTimeBasedOnCurrentTime(entry);
-      const exitTime = convertTimeBasedOnCurrentTime(exit);
-
-      // 入力された時間を分に変換
-      const entryMinutes = timeToMinutes(`${entryTime.hour}:${entryTime.minute}`);
-      const exitMinutes = timeToMinutes(`${exitTime.hour}:${exitTime.minute}`);
-      
+      const entryTime = adjustTime(document.getElementById('entryTime').value);
+      const exitTime = adjustTime(document.getElementById('exitTime').value);
+      const entry = timeToMinutes(entryTime);
+      const exit = timeToMinutes(exitTime);
       const result = document.getElementById('result');
       result.innerHTML = "";
 
-      if (!customer || isNaN(entryMinutes) || isNaN(exitMinutes)) {
+      if (!customer || isNaN(entry) || isNaN(exit)) {
         result.innerHTML = "<span class='error'>⚠️ 入力をすべて正しく指定してください。</span>";
         return;
       }
-
-      if (exitMinutes <= entryMinutes) {
+      if (exit <= entry) {
         result.innerHTML = "<span class='error'>⚠️ 退店希望時間は入場時間より後にしてください。</span>";
         return;
       }
 
-      const setTime = customer === "watch" ? 120 : 40; // 観戦パック vs 通常セット
+      const setTime = customerOptions[customer].setTime;
       const unit = 10;
-      const totalStay = exitMinutes - entryMinutes;
+      const totalStay = exit - entry;
       const extra = Math.max(0, totalStay - setTime);
-      const count = extra <= 0 ? 0 : Math.ceil(extra / unit);
+      const count = (extra <= 0) ? 0 : Math.ceil(extra / unit);
 
-      const nowEnd = entryMinutes + setTime + count * unit;
+      const nowEnd = entry + setTime + count * unit;
       const nextEnd = nowEnd + unit;
 
       let output = `
         <span>✅ 現在までの滞在時間：${formatTimeDuration(totalStay)}</span>
-        <span>🍹 飲み放題の時間：${customer === "watch" ? "120分" : "40分"}</span>
+        <span>🍹 飲み放題の時間：${customerOptions[customer].drinkTime}</span>
       `;
 
-      if (count === 0) {
+      if (customer === 'repeat') {
+        output += `<span class="green">🟢 再来店のためセット料金対象外です。</span>`;
+      } else if (count === 0) {
         output += `<span class="green">🟢 セット内で完結しています。延長は不要です。</span>`;
       } else {
         output += `
@@ -204,14 +209,6 @@
       }
 
       result.innerHTML = output;
-    }
-
-    // 初期の退店時間を現在時刻に設定
-    function setDefaultExitTime() {
-      const now = new Date();
-      const hours = now.getHours().toString().padStart(2, '0');
-      const minutes = now.getMinutes().toString().padStart(2, '0');
-      document.getElementById('exitTime').value = `${hours}:${minutes}`;
     }
 
     window.onload = setDefaultExitTime;
