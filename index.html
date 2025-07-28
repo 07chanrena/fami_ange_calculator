@@ -2,12 +2,9 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>ふぁみーゆ／あんじゅえーる 延長計算アプリ</title>
+  <title>延長計算アプリ</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <!-- 可愛い日本語フォント -->
   <link href="https://fonts.googleapis.com/css2?family=Sawarabi+Mincho&display=swap" rel="stylesheet">
-
   <style>
     body {
       font-family: 'Sawarabi Mincho', sans-serif;
@@ -16,26 +13,27 @@
       max-width: 480px;
       margin: auto;
     }
-
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
     h2 {
       color: #1e90ff;
-      text-align: center;
+      margin: 0;
     }
-
     .form-group {
       margin-bottom: 16px;
     }
-
     .form-group label {
       display: block;
       margin-bottom: 6px;
       font-size: 16px;
       color: #555;
     }
-
     .form-group input,
     .form-group select {
-      display: block;
       width: 100%;
       padding: 10px;
       font-size: 18px;
@@ -43,7 +41,6 @@
       border-radius: 6px;
       box-sizing: border-box;
     }
-
     button {
       background-color: #191970;
       color: white;
@@ -56,7 +53,6 @@
       width: 100%;
       margin-top: 12px;
     }
-
     .output {
       margin-top: 24px;
       font-size: 18px;
@@ -66,23 +62,22 @@
       border-radius: 8px;
       color: #333;
     }
-
     .output span {
       display: block;
       margin: 6px 0;
     }
-
-    .error {
-      color: red;
-    }
-
-    .green {
-      color: green;
-    }
+    .error { color: red; }
+    .green { color: green; }
   </style>
 </head>
 <body>
-  <h2>ふぁみーゆ／あんじゅえーる 延長計算アプリ</h2>
+  <div class="header">
+    <h2>延長計算アプリ</h2>
+    <div>
+      <label><input type="radio" name="autoConvert" value="on" checked> オン</label>
+      <label><input type="radio" name="autoConvert" value="off"> オフ</label>
+    </div>
+  </div>
 
   <div class="form-group">
     <label for="customer">顧客種別</label>
@@ -94,7 +89,7 @@
   </div>
 
   <div class="form-group">
-    <label for="entryTime">入場時間（例: 19:00 または 25:30）</label>
+    <label for="entryTime">入場時間（例: 930, 200, 14:00）</label>
     <input type="text" id="entryTime" value="19:00">
   </div>
 
@@ -108,26 +103,68 @@
   <div class="output" id="result"></div>
 
   <script>
-    function setDefaultExitTime() {
-      const now = new Date();
-      const hours = now.getHours().toString().padStart(2, '0');
-      const minutes = now.getMinutes().toString().padStart(2, '0');
-      document.getElementById('exitTime').value = `${hours}:${minutes}`;
-    }
-
     const customerOptions = {
       watch: { setTime: 120, drinkTime: '120分' },
       normal: { setTime: 40, drinkTime: '40分' },
       multiple: { setTime: 0, drinkTime: '0分' }
     };
 
-    function timeToMinutes(str) {
-      const [h, m] = str.split(":").map(Number);
-      return h * 60 + m;
+    function getCurrentTimeSlot() {
+      const hour = new Date().getHours();
+      if (hour >= 0 && hour < 6) return 'midnight';
+      if (hour >= 6 && hour < 12) return 'morning';
+      if (hour >= 12 && hour < 18) return 'day';
+      return 'evening';
+    }
+
+    function parseFlexibleTime(input, autoConvert = true) {
+      input = input.trim().replace(/[：]/g, ":");
+      let hours = 0, minutes = 0;
+
+      if (/^\d{3,4}$/.test(input)) {
+        if (input.length === 3) {
+          hours = parseInt(input.charAt(0));
+          minutes = parseInt(input.slice(1));
+        } else {
+          hours = parseInt(input.slice(0, 2));
+          minutes = parseInt(input.slice(2));
+        }
+      } else if (/^\d{1,2}:\d{2}$/.test(input)) {
+        [hours, minutes] = input.split(":").map(Number);
+      } else {
+        return null;
+      }
+
+      if (isNaN(hours) || isNaN(minutes) || minutes > 59) return null;
+
+      if (!autoConvert) return hours * 60 + minutes;
+
+      const timeSlot = getCurrentTimeSlot();
+      const original = hours * 60 + minutes;
+
+      // 24時間表記（14:00や2000など）は変換不要
+      if (hours >= 12 || original >= 720) return original;
+
+      // 例：200 → 午前2時 → 条件判定
+      if (original < 360) { // 2:00など
+        if (timeSlot === 'midnight') return hours * 60 + minutes + 1440; // → 26:00
+        else return 14 * 60; // → 14:00
+      }
+
+      // 例：930 → 午前9時半
+      if (original < 720) {
+        if (timeSlot === 'evening' || timeSlot === 'midnight') {
+          return hours * 60 + minutes + 720; // → +12h
+        } else {
+          return original; // そのまま
+        }
+      }
+
+      return original;
     }
 
     function minutesToTime(min) {
-      const h = Math.floor(min / 60) % 24;
+      const h = Math.floor(min / 60);
       const m = min % 60;
       return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
     }
@@ -139,59 +176,55 @@
     }
 
     function calculate() {
-      const customer = document.getElementById('customer').value;
-      const entry = timeToMinutes(document.getElementById('entryTime').value);
-      const exit = timeToMinutes(document.getElementById('exitTime').value);
       const result = document.getElementById('result');
+      const customer = document.getElementById('customer').value;
+      const autoConvert = document.querySelector('input[name="autoConvert"]:checked').value === 'on';
+      const rawEntry = document.getElementById('entryTime').value;
+      const rawExit = document.getElementById('exitTime').value;
+
+      const entry = parseFlexibleTime(rawEntry, autoConvert);
+      const exit = parseFlexibleTime(rawExit, autoConvert);
+
       result.innerHTML = "";
 
-      if (!customer || entry === null || exit === null || isNaN(entry) || isNaN(exit)) {
-        result.innerHTML = "<span class='error'>⚠️ 入力をすべて正しく指定してください。</span>";
+      if (entry === null || exit === null) {
+        result.innerHTML = "<span class='error'>⚠️ 入力形式が正しくありません。</span>";
         return;
       }
+
       if (exit <= entry) {
-        result.innerHTML = "<span class='error'>⚠️ 退店希望時間は入場時間より後にしてください。</span>";
+        result.innerHTML = "<span class='error'>⚠️ 入場時間が退店希望時間よりも後になっています。</span>";
         return;
       }
 
       const setTime = customerOptions[customer].setTime;
       const unit = 10;
       const totalStay = exit - entry;
-
-      let extra = 0;
-      let count = 0;
-
-      // 同日複数回来店の場合、セット料金を考慮せず、延長料金のみ計算
-      if (customer !== 'multiple') {
-        extra = Math.max(0, totalStay - setTime);
-        count = (extra <= 0) ? 0 : Math.ceil(extra / unit);
-      }
+      const chargeableTime = Math.max(0, totalStay - setTime);
+      const count = Math.ceil(chargeableTime / unit);
 
       const nowEnd = entry + setTime + count * unit;
       const nextEnd = nowEnd + unit;
 
       let output = `
-        <span>✅ 現在までの滞在時間：${formatTimeDuration(totalStay)}</span>
+        <span>🕰️ 入場時刻：${minutesToTime(entry)}</span>
+        <span>🕰️ 退店希望時刻：${minutesToTime(exit)}</span>
+        <span>⏳ 滞在時間：${formatTimeDuration(totalStay)}</span>
         <span>🍹 飲み放題の時間：${customerOptions[customer].drinkTime}</span>
       `;
 
-      if (customer === 'multiple') {
-        output += `<span class="green">🟢 同日複数回目の来店のため、セット料金は適用されません。</span>`;
-      } else if (count === 0) {
-        output += `<span class="green">🟢 セット内で完結しています。延長は不要です。</span>`;
-      } else {
-        output += `
-          <span>🔁 現在までの延長回数：${count}回</span>
-          <span>⏱️ 延長分数：${extra}分</span>
-          <span>🕑 現在の延長終了時刻：${minutesToTime(nowEnd)}</span>
-          <span>➕ 延長を1追加した場合：${minutesToTime(nextEnd)}</span>
-        `;
+      if (customer === "multiple") {
+        output += `<span class="green">🟢 再来店のためセット料金対象外です</span>`;
       }
+
+      output += `
+        <span>🔁 延長回数：${count}回</span>
+        <span>🕑 延長終了時刻：${minutesToTime(nowEnd)}</span>
+        <span>➕ さらに延長した場合：${minutesToTime(nextEnd)}</span>
+      `;
 
       result.innerHTML = output;
     }
-
-    window.onload = setDefaultExitTime;
   </script>
 </body>
 </html>
