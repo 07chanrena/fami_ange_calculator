@@ -73,10 +73,9 @@
 <body>
   <div class="header">
     <h2>延長計算アプリ</h2>
-    <div>
-      <label><input type="radio" name="autoConvert" value="on" checked> オン</label>
-      <label><input type="radio" name="autoConvert" value="off"> オフ</label>
-    </div>
+    <label>
+      <input type="checkbox" id="autoConvert" checked> 時刻自動変換機能
+    </label>
   </div>
 
   <div class="form-group">
@@ -84,18 +83,18 @@
     <select id="customer">
       <option value="watch">観戦パック</option>
       <option value="normal">通常セット</option>
-      <option value="multiple">同日複数回来店</option>
+      <option value="multiple">同日再来店</option>
     </select>
   </div>
 
   <div class="form-group">
-    <label for="entryTime">入場時間（例: 930, 200, 14:00）</label>
-    <input type="text" id="entryTime" value="19:00">
+    <label for="entryTime">入場時間</label>
+    <input type="text" id="entryTime" placeholder="例: 930, 200, 14:00">
   </div>
 
   <div class="form-group">
     <label for="exitTime">退店希望時間</label>
-    <input type="text" id="exitTime">
+    <input type="text" id="exitTime" placeholder="例: 1130, 25:00">
   </div>
 
   <button onclick="calculate()">算出する</button>
@@ -117,43 +116,30 @@
       return 'evening';
     }
 
-    function parseFlexibleTime(input, autoConvert = true) {
-      input = input.trim().replace(/[：]/g, ":");
-      let hours = 0, minutes = 0;
-
-      if (/^\d{3,4}$/.test(input)) {
-        if (input.length === 3) {
-          hours = parseInt(input.charAt(0));
-          minutes = parseInt(input.slice(1));
-        } else {
-          hours = parseInt(input.slice(0, 2));
-          minutes = parseInt(input.slice(2));
-        }
-      } else if (/^\d{1,2}:\d{2}$/.test(input)) {
-        [hours, minutes] = input.split(":").map(Number);
-      } else {
-        return null;
+    function normalizeTimeInput(raw) {
+      if (/^\d{3,4}$/.test(raw)) {
+        const h = raw.length === 3 ? raw.charAt(0) : raw.slice(0, 2);
+        const m = raw.slice(-2);
+        return `${h}:${m}`;
       }
+      return raw;
+    }
 
-      if (isNaN(hours) || isNaN(minutes) || minutes > 59) return null;
+    function parseFlexibleTime(str, autoConvert = true, context = 'entry') {
+      str = str.trim().replace(/[：]/g, ":");
+      if (!str.includes(":")) str = normalizeTimeInput(str);
 
-      if (!autoConvert) return hours * 60 + minutes;
+      const [h, m] = str.split(":").map(Number);
+      if (isNaN(h) || isNaN(m) || m > 59) return null;
 
       const timeSlot = getCurrentTimeSlot();
-      const original = hours * 60 + minutes;
+      const original = h * 60 + m;
 
-      // 明確な24時間制の入力（14:00以上）はそのまま扱う
-      if (hours >= 12 || original >= 720) return original;
+      if (!autoConvert) return original;
 
-      // 2:00などの深夜表記
-      if (original < 360) {
-        return (timeSlot === 'midnight') ? original + 1440 : 14 * 60;
-      }
-
-      // 9:30などの午前表記
-      if (original < 720) {
-        return (timeSlot === 'evening' || timeSlot === 'midnight') ? original + 720 : original;
-      }
+      if (h >= 12 || original >= 720) return original;
+      if (original < 360) return (timeSlot === 'midnight') ? original + 1440 : 14 * 60;
+      if (original < 720) return (timeSlot === 'evening' || timeSlot === 'midnight') ? original + 720 : original;
 
       return original;
     }
@@ -173,22 +159,40 @@
     function calculate() {
       const result = document.getElementById('result');
       const customer = document.getElementById('customer').value;
-      const autoConvert = document.querySelector('input[name="autoConvert"]:checked').value === 'on';
-      const rawEntry = document.getElementById('entryTime').value;
-      const rawExit = document.getElementById('exitTime').value;
+      const autoConvert = document.getElementById('autoConvert').checked;
 
-      const entry = parseFlexibleTime(rawEntry, autoConvert);
-      const exit = parseFlexibleTime(rawExit, autoConvert);
+      let rawEntry = document.getElementById('entryTime').value;
+      let rawExit = document.getElementById('exitTime').value;
+
+      if (!autoConvert) {
+        rawEntry = normalizeTimeInput(rawEntry);
+        rawExit = normalizeTimeInput(rawExit);
+        document.getElementById('entryTime').value = rawEntry;
+        document.getElementById('exitTime').value = rawExit;
+      }
+
+      const entry = parseFlexibleTime(rawEntry, autoConvert, 'entry');
+      const exit = parseFlexibleTime(rawExit, autoConvert, 'exit');
+
+      if (autoConvert) {
+        if (entry !== null) document.getElementById('entryTime').value = minutesToTime(entry);
+        if (exit !== null) document.getElementById('exitTime').value = minutesToTime(exit);
+      }
 
       result.innerHTML = "";
 
       if (entry === null || exit === null) {
-        result.innerHTML = "<span class='error'>⚠️ 入力形式が正しくありません。</span>";
+        result.innerHTML = "<span class='error'>⚠️ 入力値が不正です。</span>";
         return;
       }
 
       if (exit <= entry) {
         result.innerHTML = "<span class='error'>⚠️ 入場時間が退店希望時間よりも後になっています。</span>";
+        return;
+      }
+
+      if (customer === "watch" && entry >= 21 * 60) {
+        result.innerHTML = "<span class='error'>⚠️ 観戦パックは21:00以降適用できません。</span>";
         return;
       }
 
@@ -208,7 +212,7 @@
       `;
 
       if (customer === "multiple") {
-        output += `<span class="green">🟢 再来店のためセット料金対象外です</span>`;
+        output += `<span class="green">🟢 同日再来店のためセット料金対象外です</span>`;
       }
 
       output += `
