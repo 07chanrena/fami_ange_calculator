@@ -125,7 +125,7 @@
       return raw;
     }
 
-    function parseFlexibleTime(str, autoConvert = true, context = 'entry') {
+    function parseFlexibleTime(str, autoConvert = true) {
       str = str.trim().replace(/[：]/g, ":");
       if (!str.includes(":")) str = normalizeTimeInput(str);
 
@@ -171,8 +171,8 @@
         document.getElementById('exitTime').value = rawExit;
       }
 
-      const entry = parseFlexibleTime(rawEntry, autoConvert, 'entry');
-      const exit = parseFlexibleTime(rawExit, autoConvert, 'exit');
+      const entry = parseFlexibleTime(rawEntry, autoConvert);
+      const exit = parseFlexibleTime(rawExit, autoConvert);
 
       if (autoConvert) {
         if (entry !== null) document.getElementById('entryTime').value = minutesToTime(entry);
@@ -220,6 +220,23 @@
         <span>🕑 延長終了時刻：${minutesToTime(nowEnd)}</span>
         <span>➕ さらに延長した場合：${minutesToTime(nextEnd)}</span>
       `;
+
+      // 💰 料金比較（観戦パック vs 通常セット）
+      const watchPrice = 6000;
+      const base = 2500;
+      const over40 = Math.max(0, totalStay - 40);
+      const normalExtra = Math.ceil(over40 / 10) * 700;
+      const normalPrice = base + normalExtra;
+
+      if (customer === "watch" || customer === "normal") {
+        if (normalPrice < watchPrice) {
+          output += `<span class="green">💰 通常セットの方が安いです（${normalPrice}円）</span>`;
+        } else if (normalPrice > watchPrice) {
+          output += `<span class="green">💰 観戦パックの方がお得です（通常セットなら${normalPrice}円）</span>`;
+        } else {
+          output += `<span class="green">💰 両プランは同額です（6000円）</span>`;
+        }
+      }
 
       result.innerHTML = output;
     }
