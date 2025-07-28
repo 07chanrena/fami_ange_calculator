@@ -142,22 +142,17 @@
       const timeSlot = getCurrentTimeSlot();
       const original = hours * 60 + minutes;
 
-      // 24時間表記（14:00や2000など）は変換不要
+      // 明確な24時間制の入力（14:00以上）はそのまま扱う
       if (hours >= 12 || original >= 720) return original;
 
-      // 例：200 → 午前2時 → 条件判定
-      if (original < 360) { // 2:00など
-        if (timeSlot === 'midnight') return hours * 60 + minutes + 1440; // → 26:00
-        else return 14 * 60; // → 14:00
+      // 2:00などの深夜表記
+      if (original < 360) {
+        return (timeSlot === 'midnight') ? original + 1440 : 14 * 60;
       }
 
-      // 例：930 → 午前9時半
+      // 9:30などの午前表記
       if (original < 720) {
-        if (timeSlot === 'evening' || timeSlot === 'midnight') {
-          return hours * 60 + minutes + 720; // → +12h
-        } else {
-          return original; // そのまま
-        }
+        return (timeSlot === 'evening' || timeSlot === 'midnight') ? original + 720 : original;
       }
 
       return original;
@@ -202,7 +197,6 @@
       const totalStay = exit - entry;
       const chargeableTime = Math.max(0, totalStay - setTime);
       const count = Math.ceil(chargeableTime / unit);
-
       const nowEnd = entry + setTime + count * unit;
       const nextEnd = nowEnd + unit;
 
@@ -228,5 +222,3 @@
   </script>
 </body>
 </html>
-
-
